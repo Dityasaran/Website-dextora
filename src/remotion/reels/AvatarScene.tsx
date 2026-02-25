@@ -13,9 +13,11 @@ import { CinematicCaption } from "../components/CinematicCaption";
 import { ReusableAvatar } from "../components/avatar/ReusableAvatar";
 import { AnimatedImageSequence } from "../components/AnimatedImageSequence";
 
-export const AvatarScene: React.FC<{ segment: ReelSegment; index: number }> = ({
+export const AvatarScene: React.FC<{ segment: ReelSegment; index: number; avatarId?: string; musicUrl?: string }> = ({
     segment,
     index,
+    avatarId = "alex",
+    musicUrl,
 }) => {
     const frame = useCurrentFrame();
     const { durationInFrames } = useVideoConfig();
@@ -80,6 +82,7 @@ export const AvatarScene: React.FC<{ segment: ReelSegment; index: number }> = ({
             <ReusableAvatar
                 speaking={true}
                 gesture={(segment.avatarGesture as "idle" | "explaining" | "pointing" | "waving") || "explaining"}
+                avatarId={avatarId}
             />
 
             {/* 4. UGC Captions  */}
@@ -90,6 +93,14 @@ export const AvatarScene: React.FC<{ segment: ReelSegment; index: number }> = ({
                 <Audio
                     src={segment.ttsAudioUrl.startsWith("/") ? staticFile(segment.ttsAudioUrl.slice(1)) : segment.ttsAudioUrl}
                     volume={1}
+                />
+            )}
+
+            {/* 6. Background Music */}
+            {musicUrl && (
+                <Audio
+                    src={musicUrl.startsWith("/") ? staticFile(musicUrl.slice(1)) : musicUrl}
+                    volume={0.12}
                 />
             )}
         </AbsoluteFill>

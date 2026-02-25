@@ -5,9 +5,17 @@ import { useRouter } from "next/navigation";
 import { Player } from "@remotion/player";
 import { AIComposition, Scene } from "@/remotion/AIComposition";
 import { ReelComposition, ReelSegment } from "@/remotion/reels/ReelComposition";
-import { Video, ChevronLeft, Loader2, Play, Download, Settings2, Scissors, Activity, Layers, Sparkles } from "lucide-react";
+import { AvatarSelector } from "@/components/editor/AvatarSelector";
+import { CaptionControls, CaptionStyle } from "@/components/editor/CaptionControls";
+import { MusicSelector, MusicTrack, MUSIC_TRACKS } from "@/components/editor/MusicSelector";
+import { SceneEditor } from "@/components/editor/SceneEditor";
+import { Timeline } from "@/components/editor/Timeline";
+import {
+    Video, ChevronLeft, Loader2, Download, Settings2,
+    Scissors, Activity, Sparkles, Edit3, ArrowRight
+} from "lucide-react";
 
-type GenerationStage = "idle" | "generating" | "rendering" | "ready" | "error";
+type GenerationStage = "idle" | "generating" | "editing" | "rendering" | "ready" | "error";
 
 interface ProgressState {
     step: string;
@@ -21,7 +29,7 @@ export default function StudioDashboard() {
     // Settings State
     const [prompt, setPrompt] = useState("");
     const [duration, setDuration] = useState(30);
-    const [videoMode, setVideoMode] = useState<"normal" | "reels">("normal");
+    const [videoMode, setVideoMode] = useState<"normal" | "reels">("reels");
 
     // Generation State
     const [stage, setStage] = useState<GenerationStage>("idle");
@@ -33,6 +41,19 @@ export default function StudioDashboard() {
     const [scenes, setScenes] = useState<Scene[]>([]);
     const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
 
+    // Editor State
+    const [avatarId, setAvatarId] = useState("alex");
+    const [selectedSceneIndex, setSelectedSceneIndex] = useState(0);
+    const [musicTrack, setMusicTrack] = useState<MusicTrack>(MUSIC_TRACKS[0]);
+    const [captionStyle, setCaptionStyle] = useState<CaptionStyle>({
+        fontFamily: "'Inter', sans-serif",
+        fontSize: 56,
+        color: "#FFFFFF",
+        activeColor: "#FACC15",
+        position: "bottom",
+    });
+
+    // ─── GENERATION ──────────────────────────────────────────
     const handleGenerate = async () => {
         if (!prompt.trim()) return;
         setStage("generating");
@@ -61,18 +82,16 @@ export default function StudioDashboard() {
 
             setTitle(generatedTitle);
 
-            // 2. Generate Media Assets (Linear progress simulation for UX)
-            setProgress({ step: "VISUALS & AUDIO", detail: "Synthesizing assets via Veo & TTS...", progress: 40 });
+            // 2. Generate Media Assets
+            setProgress({ step: "VISUALS & AUDIO", detail: "Synthesizing assets via Imagen & TTS...", progress: 40 });
 
             const updatedScenes = [...generatedScenes];
             for (let i = 0; i < updatedScenes.length; i++) {
                 const scene = updatedScenes[i];
-
-                // Progress update per scene
                 const progressPercent = 40 + Math.floor(((i + 1) / updatedScenes.length) * 40);
                 setProgress(p => ({ ...p, detail: `Generating Scene ${i + 1}/${updatedScenes.length}...`, progress: progressPercent }));
 
-                // Audio — TTS for every scene that has a script
+                // Audio — TTS
                 if (scene.script) {
                     setProgress(p => ({ ...p, detail: `Generating voice for Scene ${i + 1}...` }));
                     try {
@@ -85,21 +104,15 @@ export default function StudioDashboard() {
                             const ttsData = await ttsRes.json();
                             if (ttsData.audioUrl) {
                                 updatedScenes[i].ttsAudioUrl = ttsData.audioUrl;
-                                console.log(`[TTS] Scene ${i + 1} audio: ${ttsData.audioUrl}`);
-                            } else {
-                                console.error(`[TTS] Scene ${i + 1}: Response OK but no audioUrl in data:`, ttsData);
                             }
-                        } else {
-                            const errData = await ttsRes.json().catch(() => ({}));
-                            console.error(`[TTS] Scene ${i + 1} failed (${ttsRes.status}):`, errData.error || ttsRes.statusText);
                         }
                     } catch (ttsErr: any) {
                         console.error(`[TTS] Scene ${i + 1} exception:`, ttsErr.message);
                     }
                 }
 
+                // Visuals
                 if (scene.visualPrompt) {
-                    // Generate visuals for ALL scenes (avatar scenes need animated backgrounds too)
                     const visualRes = await fetch("/api/generate-visual", {
                         method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ prompt: scene.visualPrompt, sceneId: i, isVertical: videoMode === "reels" }),
@@ -109,29 +122,39 @@ export default function StudioDashboard() {
                         if (visualData.type === "video") {
                             updatedScenes[i].videoUrl = visualData.url;
                             updatedScenes[i].visualAsset = visualData.url;
-                        }
-                        else if (visualData.type === "image") {
+                        } else if (visualData.type === "image") {
                             updatedScenes[i].imageUrls = visualData.urls;
                             updatedScenes[i].visualAsset = visualData.urls[0];
                         }
-                    } else {
-                        console.warn(`Visual generation failed for scene ${i + 1}, using fallback.`);
                     }
                 }
             }
 
             setScenes(updatedScenes);
+            setProgress({ step: "READY TO EDIT", detail: "Assets generated. Opening editor...", progress: 85 });
 
-            // 3. Render Final Video
-            setStage("rendering");
-            setProgress({ step: "REMOTION RENDERER", detail: "Compositing final video file...", progress: 90 });
+            // Go to editing stage instead of auto-rendering
+            setStage("editing");
 
+        } catch (e: any) {
+            setErrorMessage(e.message);
+            setStage("error");
+        }
+    };
+
+    // ─── RENDER (from editor) ──────────────────────────────
+    const handleRender = async () => {
+        setStage("rendering");
+        setProgress({ step: "REMOTION RENDERER", detail: "Compositing final cinematic reel...", progress: 90 });
+
+        try {
+            const totalDuration = scenes.reduce((acc, s) => acc + (s.duration || 5), 0);
             const renderRes = await fetch("/api/render", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(
                     videoMode === "reels"
-                        ? { isReel: true, title: generatedTitle, duration, segments: updatedScenes }
-                        : { title: generatedTitle, duration, style: "Cinematic", scenes: updatedScenes }
+                        ? { isReel: true, title, duration: totalDuration, segments: scenes, avatarId, musicUrl: musicTrack.url }
+                        : { title, duration: totalDuration, style: "Cinematic", scenes }
                 )
             });
             const renderData = await renderRes.json();
@@ -140,17 +163,47 @@ export default function StudioDashboard() {
             setFinalVideoUrl(renderData.videoUrl);
             setProgress({ step: "COMPLETE", detail: "Video successfully rendered.", progress: 100 });
             setStage("ready");
-
         } catch (e: any) {
             setErrorMessage(e.message);
             setStage("error");
         }
     };
 
+    // ─── REGENERATE TTS FOR SINGLE SCENE ──────────────────
+    const handleRegenerateTTS = async (index: number) => {
+        const scene = scenes[index];
+        if (!scene.script) return;
+        try {
+            const res = await fetch("/api/tts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: scene.script }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.audioUrl) {
+                    const updated = [...scenes];
+                    updated[index].ttsAudioUrl = data.audioUrl;
+                    setScenes(updated);
+                }
+            }
+        } catch (err) {
+            console.error("TTS regeneration failed:", err);
+        }
+    };
+
+    const handleUpdateScene = (index: number, updates: Partial<any>) => {
+        const updated = [...scenes];
+        updated[index] = { ...updated[index], ...updates };
+        setScenes(updated);
+    };
+
+    const totalDuration = scenes.reduce((acc, s) => acc + (s.duration || 5), 0);
+
     return (
         <div className="min-h-screen bg-[#0A0A14] text-[#F0EFF4] flex flex-col font-heading">
 
-            {/* --- DASHBOARD HEADER --- */}
+            {/* --- HEADER --- */}
             <header className="h-16 border-b border-white/10 flex flex-shrink-0 items-center justify-between px-6 bg-[#05050A]">
                 <div className="flex items-center gap-4">
                     <button onClick={() => router.push('/')} className="hover:text-white text-gray-400 transition-colors">
@@ -159,10 +212,18 @@ export default function StudioDashboard() {
                     <div className="w-8 h-8 rounded-lg bg-[#7B61FF]/20 border border-[#7B61FF]/50 flex items-center justify-center">
                         <Video className="text-[#7B61FF] w-4 h-4" />
                     </div>
-                    <span className="font-bold text-lg tracking-tight">Studio Engine</span>
+                    <span className="font-bold text-lg tracking-tight">Dextora Studio</span>
                 </div>
 
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
+                    {stage === "editing" && (
+                        <button
+                            onClick={handleRender}
+                            className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#7B61FF] to-[#38bdf8] text-white font-bold text-sm hover:shadow-[0_0_20px_rgba(123,97,255,0.4)] transition-all flex items-center gap-2"
+                        >
+                            <Sparkles className="w-4 h-4" /> RENDER REEL
+                        </button>
+                    )}
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#10b981]/10 border border-[#10b981]/20">
                         <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></div>
                         <span className="text-xs font-data text-[#10b981]">SYSTEM ONLINE</span>
@@ -170,75 +231,144 @@ export default function StudioDashboard() {
                 </div>
             </header>
 
-            {/* --- WORKSPACE GRID --- */}
+            {/* --- WORKSPACE --- */}
             <main className="flex-1 flex overflow-hidden">
 
-                {/* LEFT PANEL: CONFIGURATION */}
+                {/* LEFT PANEL */}
                 <aside className="w-[400px] flex-shrink-0 border-r border-white/10 bg-[#0A0A14] flex flex-col overflow-y-auto custom-scrollbar">
-                    <div className="p-6 border-b border-white/5">
-                        <h2 className="text-sm uppercase tracking-widest font-data text-gray-500 mb-6 flex items-center gap-2">
-                            <Settings2 className="w-4 h-4" /> Generation Params
-                        </h2>
 
-                        <div className="space-y-6 text-sm">
-                            <div>
-                                <label className="block text-gray-400 mb-2 font-data text-xs">CINEMATIC PROMPT</label>
-                                <textarea
-                                    value={prompt}
-                                    onChange={(e) => setPrompt(e.target.value)}
-                                    placeholder="Describe the cinematic masterpiece you want to create..."
-                                    className="w-full h-32 bg-[#05050A] border border-white/10 rounded-xl p-4 text-[#F0EFF4] placeholder-gray-600 focus:border-[#7B61FF] focus:outline-none focus:ring-1 focus:ring-[#7B61FF]/50 transition-all font-data resize-none"
-                                />
-                            </div>
+                    {/* IDLE / GENERATING: Show prompt input */}
+                    {(stage === "idle" || stage === "generating" || stage === "rendering") && (
+                        <div className="p-6 flex flex-col h-full">
+                            <h2 className="text-sm uppercase tracking-widest font-data text-gray-500 mb-6 flex items-center gap-2">
+                                <Settings2 className="w-4 h-4" /> Generation Params
+                            </h2>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-6 text-sm flex-1">
                                 <div>
-                                    <label className="block text-gray-400 mb-2 font-data text-xs">ASPECT / MODE</label>
-                                    <div className="relative">
+                                    <label className="block text-gray-400 mb-2 font-data text-xs">CINEMATIC PROMPT</label>
+                                    <textarea
+                                        value={prompt}
+                                        onChange={(e) => setPrompt(e.target.value)}
+                                        placeholder="Describe your reel idea..."
+                                        className="w-full h-32 bg-[#05050A] border border-white/10 rounded-xl p-4 text-[#F0EFF4] placeholder-gray-600 focus:border-[#7B61FF] focus:outline-none focus:ring-1 focus:ring-[#7B61FF]/50 transition-all font-data resize-none"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-gray-400 mb-2 font-data text-xs">MODE</label>
                                         <select
                                             value={videoMode}
                                             onChange={(e) => setVideoMode(e.target.value as "normal" | "reels")}
-                                            className="w-full bg-[#05050A] border border-white/10 rounded-lg py-3 px-4 appearance-none focus:border-[#38bdf8] focus:outline-none focus:ring-1 focus:ring-[#38bdf8]/50"
+                                            className="w-full bg-[#05050A] border border-white/10 rounded-lg py-3 px-4 appearance-none focus:border-[#38bdf8] focus:outline-none"
                                         >
                                             <option value="normal">Cinematic (16:9)</option>
                                             <option value="reels">Vertical Reel (9:16)</option>
                                         </select>
                                     </div>
-                                </div>
-                                <div>
-                                    <label className="block text-gray-400 mb-2 font-data text-xs">DURATION</label>
-                                    <select
-                                        value={duration}
-                                        onChange={(e) => setDuration(Number(e.target.value))}
-                                        className="w-full bg-[#05050A] border border-white/10 rounded-lg py-3 px-4 appearance-none focus:border-[#38bdf8] focus:outline-none focus:ring-1 focus:ring-[#38bdf8]/50"
-                                    >
-                                        <option value={15}>15 Seconds</option>
-                                        <option value={30}>30 Seconds</option>
-                                        <option value={60}>60 Seconds</option>
-                                    </select>
+                                    <div>
+                                        <label className="block text-gray-400 mb-2 font-data text-xs">DURATION</label>
+                                        <select
+                                            value={duration}
+                                            onChange={(e) => setDuration(Number(e.target.value))}
+                                            className="w-full bg-[#05050A] border border-white/10 rounded-lg py-3 px-4 appearance-none focus:border-[#38bdf8] focus:outline-none"
+                                        >
+                                            <option value={15}>15 Seconds</option>
+                                            <option value={30}>30 Seconds</option>
+                                            <option value={60}>60 Seconds</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div className="p-6 mt-auto border-t border-white/5 bg-[#05050A]">
-                        <button
-                            onClick={handleGenerate}
-                            disabled={stage === "generating" || stage === "rendering" || !prompt.trim()}
-                            className="w-full py-4 rounded-xl bg-gradient-to-r from-[#7B61FF] to-[#38bdf8] text-white font-bold tracking-wide hover:shadow-[0_0_20px_rgba(123,97,255,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {(stage === "generating" || stage === "rendering") ? (
-                                <><Loader2 className="w-5 h-5 animate-spin" /> EXECUTING...</>
-                            ) : (
-                                <><Sparkles className="w-5 h-5" /> INITIALIZE RENDER</>
+                            <div className="pt-4 border-t border-white/5 mt-auto">
+                                <button
+                                    onClick={handleGenerate}
+                                    disabled={stage === "generating" || stage === "rendering" || !prompt.trim()}
+                                    className="w-full py-4 rounded-xl bg-gradient-to-r from-[#7B61FF] to-[#38bdf8] text-white font-bold tracking-wide hover:shadow-[0_0_20px_rgba(123,97,255,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {(stage === "generating" || stage === "rendering") ? (
+                                        <><Loader2 className="w-5 h-5 animate-spin" /> GENERATING...</>
+                                    ) : (
+                                        <><Sparkles className="w-5 h-5" /> GENERATE REEL</>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* EDITING: Show editor controls */}
+                    {stage === "editing" && (
+                        <div className="p-5 space-y-6 overflow-y-auto">
+                            <h2 className="text-sm uppercase tracking-widest font-data text-gray-500 flex items-center gap-2">
+                                <Edit3 className="w-4 h-4" /> Reel Editor
+                            </h2>
+
+                            {/* Avatar Selector */}
+                            <AvatarSelector selectedId={avatarId} onSelect={setAvatarId} />
+
+                            {/* Divider */}
+                            <div className="border-t border-white/5" />
+
+                            {/* Scene Editor */}
+                            <SceneEditor
+                                scenes={scenes}
+                                selectedIndex={selectedSceneIndex}
+                                onSelectScene={setSelectedSceneIndex}
+                                onUpdateScene={handleUpdateScene}
+                                onRegenerateTTS={handleRegenerateTTS}
+                            />
+
+                            {/* Divider */}
+                            <div className="border-t border-white/5" />
+
+                            {/* Caption Controls */}
+                            <CaptionControls style={captionStyle} onChange={setCaptionStyle} />
+
+                            {/* Divider */}
+                            <div className="border-t border-white/5" />
+
+                            {/* Music Selector */}
+                            <MusicSelector
+                                selectedId={musicTrack.id}
+                                onSelect={setMusicTrack}
+                            />
+
+                            {/* Render Button */}
+                            <div className="pt-4 border-t border-white/5">
+                                <button
+                                    onClick={handleRender}
+                                    className="w-full py-4 rounded-xl bg-gradient-to-r from-[#7B61FF] to-[#38bdf8] text-white font-bold tracking-wide hover:shadow-[0_0_20px_rgba(123,97,255,0.4)] transition-all flex items-center justify-center gap-2"
+                                >
+                                    <ArrowRight className="w-5 h-5" /> RENDER FINAL REEL
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* READY: Show export */}
+                    {stage === "ready" && (
+                        <div className="p-6 flex flex-col items-center justify-center h-full text-center">
+                            <div className="w-16 h-16 rounded-full bg-[#10b981]/20 flex items-center justify-center mb-4">
+                                <Sparkles className="w-8 h-8 text-[#10b981]" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Reel Ready!</h3>
+                            <p className="text-gray-400 text-sm mb-6">Your cinematic reel has been rendered.</p>
+                            {finalVideoUrl && (
+                                <a href={finalVideoUrl} download className="px-6 py-3 bg-gradient-to-r from-[#7B61FF] to-[#38bdf8] rounded-xl font-bold flex items-center gap-2 hover:shadow-lg transition-all">
+                                    <Download className="w-5 h-5" /> DOWNLOAD MP4
+                                </a>
                             )}
-                        </button>
-                    </div>
+                            <button onClick={() => { setStage("idle"); setPrompt(""); setScenes([]); setFinalVideoUrl(null); }} className="mt-4 px-4 py-2 text-gray-400 text-sm hover:text-white transition-colors flex items-center gap-1">
+                                <Scissors className="w-4 h-4" /> New Project
+                            </button>
+                        </div>
+                    )}
                 </aside>
 
-                {/* RIGHT PANEL: PREVIEW & TELEMETRY */}
+                {/* RIGHT PANEL: PREVIEW */}
                 <section className="flex-1 flex flex-col bg-[#05050A] relative overflow-hidden">
-                    {/* Dynamic Background */}
                     <div className="absolute inset-0 bg-[#38bdf8]/[0.02] pointer-events-none" />
                     <div className="absolute inset-x-0 top-0 h-[400px] bg-gradient-to-b from-[#7B61FF]/[0.05] to-transparent pointer-events-none" />
 
@@ -254,11 +384,10 @@ export default function StudioDashboard() {
                         {(stage === "generating" || stage === "rendering") && (
                             <div className="w-full max-w-2xl bg-[#0A0A14] border border-white/10 rounded-[2rem] p-10 flex flex-col shadow-2xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-40 h-40 bg-[#38bdf8]/10 blur-[60px]" />
-                                <h2 className="text-2xl font-drama italic mb-8 flex items-center gap-3">
+                                <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
                                     <Loader2 className="w-6 h-6 animate-spin text-[#38bdf8]" />
-                                    Processing Pipeline
+                                    {stage === "generating" ? "Generating Assets..." : "Rendering Video..."}
                                 </h2>
-
                                 <div className="space-y-6 relative z-10">
                                     <div>
                                         <div className="flex justify-between text-xs font-data mb-2 text-gray-400">
@@ -272,10 +401,8 @@ export default function StudioDashboard() {
                                             />
                                         </div>
                                     </div>
-
-                                    {/* Telemetry Log */}
                                     <div className="bg-black/40 rounded-xl border border-white/5 p-4 font-data text-xs text-gray-400 h-24 flex items-end">
-                                        <p className="w-full truncate">{`> ${progress.detail}`}<span className="inline-block w-1.5 h-3 bg-[#38bdf8] ml-1 animate-blink align-middle"></span></p>
+                                        <p className="w-full truncate">{`> ${progress.detail}`}<span className="inline-block w-1.5 h-3 bg-[#38bdf8] ml-1 animate-pulse align-middle"></span></p>
                                     </div>
                                 </div>
                             </div>
@@ -290,8 +417,52 @@ export default function StudioDashboard() {
                             </div>
                         )}
 
+                        {/* EDITING: Live Preview + Timeline */}
+                        {stage === "editing" && scenes.length > 0 && (
+                            <div className="w-full max-w-5xl flex flex-col gap-6">
+                                <div className="flex items-center justify-between px-2">
+                                    <h2 className="text-2xl font-bold">{title}</h2>
+                                    <span className="text-xs text-gray-500 font-data">{scenes.length} scenes • {totalDuration}s</span>
+                                </div>
+
+                                {/* Live Preview Player */}
+                                <div className="w-full flex justify-center bg-black/60 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-[#7B61FF]/[0.02] group-hover:bg-[#7B61FF]/[0.05] transition-colors pointer-events-none" />
+                                    <Player
+                                        component={videoMode === 'reels' ? (ReelComposition as any) : (AIComposition as any)}
+                                        inputProps={videoMode === 'reels'
+                                            ? { title, duration: totalDuration, segments: scenes, avatarId, musicUrl: musicTrack.url } as any
+                                            : { title, duration: totalDuration, scenes, style: "Cinematic" } as any
+                                        }
+                                        durationInFrames={Math.round(totalDuration * 30)}
+                                        fps={30}
+                                        compositionWidth={videoMode === 'reels' ? 1080 : 1280}
+                                        compositionHeight={videoMode === 'reels' ? 1920 : 720}
+                                        style={{
+                                            width: videoMode === 'reels' ? "auto" : "100%",
+                                            height: videoMode === 'reels' ? "550px" : "100%",
+                                            aspectRatio: videoMode === 'reels' ? "9/16" : "16/9",
+                                            borderRadius: "16px",
+                                            boxShadow: "0 20px 40px rgba(0,0,0,0.5)"
+                                        }}
+                                        controls
+                                        autoPlay
+                                        loop
+                                    />
+                                </div>
+
+                                {/* Timeline */}
+                                <Timeline
+                                    scenes={scenes}
+                                    selectedIndex={selectedSceneIndex}
+                                    onSelectScene={setSelectedSceneIndex}
+                                />
+                            </div>
+                        )}
+
+                        {/* READY: Final video player */}
                         {stage === "ready" && (
-                            <div className="w-full max-w-5xl flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                            <div className="w-full max-w-5xl flex flex-col gap-6">
                                 <div className="flex items-center justify-between px-2">
                                     <h2 className="text-2xl font-bold">{title}</h2>
                                     <div className="flex gap-3">
@@ -300,14 +471,9 @@ export default function StudioDashboard() {
                                                 <Download className="w-4 h-4" /> EXPORT MP4
                                             </a>
                                         )}
-                                        <button onClick={() => { setStage("idle"); setPrompt(""); }} className="px-4 py-2 bg-transparent hover:bg-white/5 border border-white/10 rounded-lg font-data text-xs flex items-center gap-2 text-gray-400 transition-colors">
-                                            <Scissors className="w-4 h-4" /> NEW PROJECT
-                                        </button>
                                     </div>
                                 </div>
-
-                                <div className="w-full flex justify-center bg-black/60 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
-                                    <div className="absolute inset-0 bg-[#7B61FF]/[0.02] group-hover:bg-[#7B61FF]/[0.05] transition-colors pointer-events-none" />
+                                <div className="w-full flex justify-center bg-black/60 border border-white/10 rounded-3xl p-6 shadow-2xl">
                                     {finalVideoUrl ? (
                                         <video
                                             src={finalVideoUrl}
@@ -318,8 +484,8 @@ export default function StudioDashboard() {
                                     ) : (
                                         <Player
                                             component={videoMode === 'reels' ? (ReelComposition as any) : (AIComposition as any)}
-                                            inputProps={videoMode === 'reels' ? { title, duration, segments: scenes } as any : { title, duration, scenes, style: "Cinematic" } as any}
-                                            durationInFrames={Math.round(duration * 30)}
+                                            inputProps={videoMode === 'reels' ? { title, duration: totalDuration, segments: scenes, avatarId } as any : { title, duration: totalDuration, scenes, style: "Cinematic" } as any}
+                                            durationInFrames={Math.round(totalDuration * 30)}
                                             fps={30}
                                             compositionWidth={videoMode === 'reels' ? 1080 : 1280}
                                             compositionHeight={videoMode === 'reels' ? 1920 : 720}
@@ -328,7 +494,6 @@ export default function StudioDashboard() {
                                                 height: videoMode === 'reels' ? "600px" : "100%",
                                                 aspectRatio: videoMode === 'reels' ? "9/16" : "16/9",
                                                 borderRadius: "16px",
-                                                boxShadow: "0 20px 40px rgba(0,0,0,0.5)"
                                             }}
                                             controls
                                             autoPlay

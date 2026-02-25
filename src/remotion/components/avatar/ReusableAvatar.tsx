@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
     useCurrentFrame,
     useVideoConfig,
@@ -6,47 +6,62 @@ import {
     AbsoluteFill,
 } from "remotion";
 import {
-    avatarHead,
-    avatarEyebrows,
-    avatarEyes,
-    avatarMouthSmallOpen,
-    avatarMouthMediumOpen,
-    avatarMouthWideOpen,
-    avatarMouthClosed,
-    avatarBody,
-    avatarArmLeft,
-    avatarArmRight
-} from "./avatarAssets";
+    getAvatarPreset,
+    generateAvatarHead,
+    generateAvatarEyebrows,
+    generateAvatarEyes,
+    generateAvatarMouthClosed,
+    generateAvatarMouthSmallOpen,
+    generateAvatarMouthMediumOpen,
+    generateAvatarMouthWideOpen,
+    generateAvatarBody,
+    generateAvatarArmLeft,
+    generateAvatarArmRight,
+} from "./avatarLibrary";
 
 type AvatarGesture = "explaining" | "pointing" | "waving" | "idle";
 
 interface ReusableAvatarProps {
     speaking: boolean;
     gesture?: AvatarGesture;
+    avatarId?: string; // Selects from avatar library
 }
 
 export const ReusableAvatar: React.FC<ReusableAvatarProps> = ({
     speaking,
     gesture = "explaining",
+    avatarId = "alex",
 }) => {
     const frame = useCurrentFrame();
     const { fps } = useVideoConfig();
     const t = frame / fps;
 
+    // --- Generate SVG layers from avatar preset ---
+    const preset = useMemo(() => getAvatarPreset(avatarId), [avatarId]);
+    const headSvg = useMemo(() => generateAvatarHead(preset), [preset]);
+    const eyebrowsSvg = useMemo(() => generateAvatarEyebrows(preset), [preset]);
+    const eyesSvg = useMemo(() => generateAvatarEyes(preset), [preset]);
+    const mouthClosedSvg = useMemo(() => generateAvatarMouthClosed(preset), [preset]);
+    const mouthSmallSvg = useMemo(() => generateAvatarMouthSmallOpen(), []);
+    const mouthMediumSvg = useMemo(() => generateAvatarMouthMediumOpen(), []);
+    const mouthWideSvg = useMemo(() => generateAvatarMouthWideOpen(), []);
+    const bodySvg = useMemo(() => generateAvatarBody(preset), [preset]);
+    const armLeftSvg = useMemo(() => generateAvatarArmLeft(preset), [preset]);
+    const armRightSvg = useMemo(() => generateAvatarArmRight(preset), [preset]);
+
     // --- 1. LIP SYNC SYLLABLE MATCHING (4-Stage) ---
-    // Generate a pseudo-volume curve (-1 to 1) using multiple frequencies
     const jawWave = Math.sin(t * 8.0) * 0.4 + Math.sin(t * 13.0) * 0.4 + Math.sin(t * 19.0) * 0.2;
 
-    let mouthSvg = avatarMouthClosed;
+    let mouthSvg = mouthClosedSvg;
     if (speaking) {
         if (jawWave > 0.6) {
-            mouthSvg = avatarMouthWideOpen;
+            mouthSvg = mouthWideSvg;
         } else if (jawWave > 0.2) {
-            mouthSvg = avatarMouthMediumOpen;
+            mouthSvg = mouthMediumSvg;
         } else if (jawWave > -0.2) {
-            mouthSvg = avatarMouthSmallOpen;
+            mouthSvg = mouthSmallSvg;
         } else {
-            mouthSvg = avatarMouthClosed;
+            mouthSvg = mouthClosedSvg;
         }
     }
 
@@ -69,7 +84,6 @@ export const ReusableAvatar: React.FC<ReusableAvatarProps> = ({
     // --- 4. ARM GESTURE MOTION (0 to -12px, rotate 0 to 8deg) ---
     const armY = speaking ? interpolate(Math.sin(t * 4.0), [-1, 1], [0, -12]) : 0;
 
-    // Arm Rotation based on gesture (0 to 8deg logic, adjusting existing setup to match spec)
     let leftArmRotate = 0;
     let rightArmRotate = 0;
 
@@ -77,16 +91,15 @@ export const ReusableAvatar: React.FC<ReusableAvatarProps> = ({
         rightArmRotate = interpolate(Math.sin(t * 8.0), [-1, 1], [-15, 15]);
     } else if (gesture === "explaining") {
         leftArmRotate = interpolate(Math.sin(t * 3.0), [-1, 1], [-4, 4]);
-        rightArmRotate = interpolate(Math.sin(t * 3.5), [-1, 1], [0, 8]); // 0 to 8deg gesture rotation
+        rightArmRotate = interpolate(Math.sin(t * 3.5), [-1, 1], [0, 8]);
     } else if (gesture === "pointing") {
         rightArmRotate = -25 + interpolate(Math.sin(t * 2.0), [-1, 1], [-2, 2]);
     }
 
     // --- 5. EYE BLINKING (Every 2-4 seconds randomly) ---
-    // 2-4 seconds = 60-120 frames at 30fps
     const blinkInterval = 60 + (frame * 7) % 60;
     const blinkPhase = frame % blinkInterval;
-    const isBlinking = blinkPhase >= 0 && blinkPhase < 3; // 3 frames blink duration
+    const isBlinking = blinkPhase >= 0 && blinkPhase < 3;
 
     // Global Position & Scale overlay (1.0 to 1.05 slowly)
     const globalScale = interpolate(frame, [0, 150], [1.0, 1.05], { extrapolateRight: "clamp" });
@@ -108,7 +121,6 @@ export const ReusableAvatar: React.FC<ReusableAvatarProps> = ({
                     transform: `translateX(-50%) scale(${globalScale})`,
                     transformOrigin: "bottom center",
                     background: "transparent",
-                    // The distinct shadow requested for realism: drop-shadow(0px 15px 40px rgba(0,0,0,0.25))
                     filter: "drop-shadow(0px 15px 40px rgba(0,0,0,0.25))",
                 }}
             >
@@ -123,7 +135,7 @@ export const ReusableAvatar: React.FC<ReusableAvatarProps> = ({
                         transform: `translateY(${armY}px) rotate(${leftArmRotate}deg)`,
                         transformOrigin: "top right",
                     }}
-                    dangerouslySetInnerHTML={{ __html: avatarArmLeft }}
+                    dangerouslySetInnerHTML={{ __html: armLeftSvg }}
                 />
 
                 {/* --- BODY LAYER --- */}
@@ -137,7 +149,7 @@ export const ReusableAvatar: React.FC<ReusableAvatarProps> = ({
                         transform: `scale(${bodyScale}) translateY(${bodyY}px)`,
                         transformOrigin: "top center",
                     }}
-                    dangerouslySetInnerHTML={{ __html: avatarBody }}
+                    dangerouslySetInnerHTML={{ __html: bodySvg }}
                 />
 
                 {/* --- HEAD & FACE LAYER --- */}
@@ -149,17 +161,17 @@ export const ReusableAvatar: React.FC<ReusableAvatarProps> = ({
                         width: "200px",
                         height: "250px",
                         transform: `rotate(${headTilt}deg) translateY(${headY}px)`,
-                        transformOrigin: "center 80%", // Pivot at neck
+                        transformOrigin: "center 80%",
                     }}
                 >
                     {/* 1. Base Head */}
-                    <div dangerouslySetInnerHTML={{ __html: avatarHead }} />
+                    <div dangerouslySetInnerHTML={{ __html: headSvg }} />
 
                     {/* 2. Eyes (Blink toggle) */}
                     {!isBlinking && (
                         <div
                             style={{ position: "absolute", top: 0, left: 0 }}
-                            dangerouslySetInnerHTML={{ __html: avatarEyes }}
+                            dangerouslySetInnerHTML={{ __html: eyesSvg }}
                         />
                     )}
 
@@ -170,9 +182,8 @@ export const ReusableAvatar: React.FC<ReusableAvatarProps> = ({
                             top: 0,
                             left: 0,
                             transform: `translateY(${eyebrowY}px)`,
-                            transition: 'transform 0.1s ease-out'
                         }}
-                        dangerouslySetInnerHTML={{ __html: avatarEyebrows }}
+                        dangerouslySetInnerHTML={{ __html: eyebrowsSvg }}
                     />
 
                     {/* 4. Mouth (4-Stage Sync) */}
@@ -193,7 +204,7 @@ export const ReusableAvatar: React.FC<ReusableAvatarProps> = ({
                         transform: `translateY(${armY}px) rotate(${rightArmRotate}deg)`,
                         transformOrigin: "top left",
                     }}
-                    dangerouslySetInnerHTML={{ __html: avatarArmRight }}
+                    dangerouslySetInnerHTML={{ __html: armRightSvg }}
                 />
             </div>
         </AbsoluteFill>

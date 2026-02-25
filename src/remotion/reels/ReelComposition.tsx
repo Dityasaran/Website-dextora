@@ -24,6 +24,8 @@ export interface ReelCompositionProps {
     title: string;
     duration: number;
     segments: ReelSegment[];
+    avatarId?: string;
+    musicUrl?: string;
 }
 
 // Crossfade wrapper for smooth scene transitions
@@ -65,6 +67,8 @@ export const ReelComposition: React.FC<ReelCompositionProps> = ({
     title,
     duration,
     segments,
+    avatarId,
+    musicUrl,
 }) => {
     const { fps } = useVideoConfig();
     const OVERLAP_FRAMES = 8; // crossfade overlap
@@ -91,7 +95,7 @@ export const ReelComposition: React.FC<ReelCompositionProps> = ({
                             isFirst={i === 0}
                             isLast={i === segments.length - 1}
                         >
-                            <AvatarScene segment={segment} index={i} />
+                            <AvatarScene segment={segment} index={i} avatarId={avatarId} musicUrl={musicUrl} />
                         </CrossfadeWrapper>
                     </Sequence>
                 );
