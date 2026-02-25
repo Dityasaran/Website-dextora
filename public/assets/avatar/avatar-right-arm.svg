@@ -1,0 +1,17 @@
+<svg width="100" height="220" viewBox="0 0 100 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Blazer Sleeve -->
+  <path d="M22 0 Q32 50, 42 95 Q50 130, 56 160" stroke="#1C1C2E" stroke-width="32" stroke-linecap="round" fill="none"/>
+  <!-- Sleeve Cuff -->
+  <path d="M48 148 Q54 155, 60 160" stroke="#D4D4E8" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <!-- Wrist -->
+  <rect x="50" y="158" width="16" height="10" rx="4" fill="#D4A574"/>
+  <!-- Hand -->
+  <path d="M70 168 Q72 178, 68 186 Q62 195, 54 190 Q50 186, 52 178 Q54 170, 58 168 Z" fill="#D4A574"/>
+  <!-- Thumb -->
+  <path d="M54 175 Q48 172, 46 178 Q46 183, 50 184" fill="#D4A574" stroke="#C89B68" stroke-width="0.8"/>
+  <!-- Finger Lines -->
+  <path d="M66 182 Q64 180, 62 182" stroke="#C89B68" stroke-width="0.8" fill="none"/>
+  <path d="M64 185 Q62 183, 60 185" stroke="#C89B68" stroke-width="0.8" fill="none"/>
+  <!-- Knuckle Creases -->
+  <path d="M68 174 Q62 172, 56 174" stroke="#C89B68" stroke-width="0.6" fill="none" opacity="0.5"/>
+</svg>

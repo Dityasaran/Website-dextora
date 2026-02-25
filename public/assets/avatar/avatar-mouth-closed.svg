@@ -1,0 +1,8 @@
+<svg width="55" height="22" viewBox="0 0 55 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Closed Mouth - Neutral Confident Expression -->
+  <path d="M10 11 Q20 8, 27 10 Q34 8, 45 11" stroke="#A0655A" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <!-- Lower Lip Shadow -->
+  <path d="M14 14 Q27 18, 41 14" stroke="#A0655A" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.3"/>
+  <!-- Chin Dimple -->
+  <line x1="27" y1="19" x2="27" y2="21" stroke="#C89B68" stroke-width="1" opacity="0.25" stroke-linecap="round"/>
+</svg>

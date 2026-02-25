@@ -1,0 +1,28 @@
+<svg width="180" height="210" viewBox="0 0 180 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Head Shape (masculine jaw) -->
+  <path d="M25 95 Q25 20, 90 15 Q155 20, 155 95 Q155 130, 130 160 Q115 178, 90 185 Q65 178, 50 160 Q25 130, 25 95 Z" fill="#D4A574"/>
+  <!-- Jaw Shadow -->
+  <path d="M50 140 Q70 165, 90 170 Q110 165, 130 140" fill="#C89B68" opacity="0.35"/>
+  <!-- Masculine Hair (short styled) -->
+  <path d="M22 85 Q18 25, 55 12 Q75 5, 90 8 Q105 5, 125 12 Q162 25, 158 85 Q158 55, 140 35 Q120 20, 90 18 Q60 20, 40 35 Q22 55, 22 85 Z" fill="#1A1209"/>
+  <!-- Hair Side (left) -->
+  <path d="M22 85 Q20 70, 25 55 Q28 48, 32 45" fill="#1A1209"/>
+  <!-- Hair Side (right) -->
+  <path d="M158 85 Q160 70, 155 55 Q152 48, 148 45" fill="#1A1209"/>
+  <!-- Eyebrows (thicker, masculine) -->
+  <path d="M48 72 Q58 63, 75 68" stroke="#1A1209" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <path d="M105 68 Q122 63, 132 72" stroke="#1A1209" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <!-- Nose (stronger, defined) -->
+  <path d="M90 85 L86 115 Q83 120, 80 118" stroke="#C89B68" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M90 85 L94 115 Q97 120, 100 118" stroke="#C89B68" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Nose Bridge Shadow -->
+  <line x1="90" y1="78" x2="90" y2="100" stroke="#C89B68" stroke-width="1.5" opacity="0.3"/>
+  <!-- Ears -->
+  <path d="M22 88 Q14 88, 14 100 Q14 112, 22 112" fill="#D4A574" stroke="#C89B68" stroke-width="1"/>
+  <path d="M158 88 Q166 88, 166 100 Q166 112, 158 112" fill="#D4A574" stroke="#C89B68" stroke-width="1"/>
+  <!-- Ear Inner Detail -->
+  <path d="M18 94 Q16 100, 18 106" stroke="#C89B68" stroke-width="1" fill="none"/>
+  <path d="M162 94 Q164 100, 162 106" stroke="#C89B68" stroke-width="1" fill="none"/>
+  <!-- Stubble/5 o'clock shadow -->
+  <rect x="55" y="145" width="70" height="30" rx="15" fill="#C89B68" opacity="0.15"/>
+</svg>

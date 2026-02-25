@@ -1,0 +1,22 @@
+<svg width="320" height="340" viewBox="0 0 320 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Professional Blazer / Torso -->
+  <path d="M30 340 C30 210, 90 155, 160 155 C230 155, 290 210, 290 340 Z" fill="#1C1C2E"/>
+  <!-- Blazer Lapels -->
+  <path d="M120 160 L145 200 L160 180 L175 200 L200 160" stroke="#2A2A40" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Shirt Collar -->
+  <path d="M130 160 L160 185 L190 160" stroke="#D4D4E8" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Tie -->
+  <path d="M160 185 L155 230 L160 235 L165 230 Z" fill="#4A6CF7"/>
+  <!-- Tie Knot -->
+  <circle cx="160" cy="185" r="5" fill="#3B5CE5"/>
+  <!-- Neck -->
+  <rect x="140" y="118" width="40" height="42" rx="6" fill="#D4A574"/>
+  <!-- Adam's Apple -->
+  <ellipse cx="160" cy="138" rx="3" ry="4" fill="#C89B68" opacity="0.5"/>
+  <!-- Shoulder Seam Left -->
+  <path d="M90 175 Q110 162, 130 160" stroke="#252540" stroke-width="1.5" fill="none"/>
+  <!-- Shoulder Seam Right -->
+  <path d="M230 175 Q210 162, 190 160" stroke="#252540" stroke-width="1.5" fill="none"/>
+  <!-- Pocket Square -->
+  <path d="M98 205 L108 198 L114 208 Z" fill="#4A6CF7" opacity="0.7"/>
+</svg>

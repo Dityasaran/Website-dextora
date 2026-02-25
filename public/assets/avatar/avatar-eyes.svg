@@ -1,0 +1,37 @@
+<svg width="110" height="45" viewBox="0 0 110 45" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left Eye Socket Shadow -->
+  <ellipse cx="27" cy="22" rx="18" ry="16" fill="#C89B68" opacity="0.12"/>
+  <!-- Left Eye White -->
+  <ellipse cx="27" cy="22" rx="14" ry="12" fill="#FAFAFA"/>
+  <!-- Left Iris -->
+  <circle cx="27" cy="22" r="8" fill="#4A3520"/>
+  <!-- Left Iris Ring -->
+  <circle cx="27" cy="22" r="8" fill="none" stroke="#3B2A16" stroke-width="1"/>
+  <!-- Left Pupil -->
+  <circle cx="27" cy="22" r="4" fill="#0A0A0A"/>
+  <!-- Left Light Reflection -->
+  <circle cx="23" cy="18" r="2.5" fill="white" opacity="0.9"/>
+  <circle cx="30" cy="25" r="1.2" fill="white" opacity="0.5"/>
+  <!-- Left Lower Eyelid -->
+  <path d="M13 28 Q27 34, 41 28" stroke="#C89B68" stroke-width="1" fill="none" opacity="0.4"/>
+  <!-- Left Eyelash Line -->
+  <path d="M13 16 Q27 10, 41 16" stroke="#1A1209" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+  <!-- Right Eye Socket Shadow -->
+  <ellipse cx="83" cy="22" rx="18" ry="16" fill="#C89B68" opacity="0.12"/>
+  <!-- Right Eye White -->
+  <ellipse cx="83" cy="22" rx="14" ry="12" fill="#FAFAFA"/>
+  <!-- Right Iris -->
+  <circle cx="83" cy="22" r="8" fill="#4A3520"/>
+  <!-- Right Iris Ring -->
+  <circle cx="83" cy="22" r="8" fill="none" stroke="#3B2A16" stroke-width="1"/>
+  <!-- Right Pupil -->
+  <circle cx="83" cy="22" r="4" fill="#0A0A0A"/>
+  <!-- Right Light Reflection -->
+  <circle cx="79" cy="18" r="2.5" fill="white" opacity="0.9"/>
+  <circle cx="86" cy="25" r="1.2" fill="white" opacity="0.5"/>
+  <!-- Right Lower Eyelid -->
+  <path d="M69 28 Q83 34, 97 28" stroke="#C89B68" stroke-width="1" fill="none" opacity="0.4"/>
+  <!-- Right Eyelash Line -->
+  <path d="M69 16 Q83 10, 97 16" stroke="#1A1209" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>

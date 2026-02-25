@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Credentials
+service-account.json
+*.json.bak
+
+# Generated assets (videos, audio, images from reel generation)
+public/videos/
+public/audio/
+public/assets/images/scene-*
+tmp/
