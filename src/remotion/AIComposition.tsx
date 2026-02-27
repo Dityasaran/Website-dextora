@@ -34,7 +34,9 @@ export interface Scene {
     // Reel-specific properties
     type?: "avatar" | "visual";
     avatarVideoUrl?: string;
-    imageUrls?: string[];
+    imageUrls?: string[]; // B-roll alternative
+    syncedVideoUrl?: string; // SyncLabs lip-synced video
+    avatarGesture?: "explaining" | "pointing" | "waving" | "idle";
 }
 
 export interface AICompositionProps {

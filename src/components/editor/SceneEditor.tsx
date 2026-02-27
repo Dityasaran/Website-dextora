@@ -92,6 +92,7 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({
                                     >
                                         <RefreshCw className="w-3 h-3" /> Regenerate Voice
                                     </button>
+
                                 </div>
 
                                 {/* Gesture */}
@@ -103,8 +104,8 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({
                                                 key={g.value}
                                                 onClick={() => onUpdateScene(i, { avatarGesture: g.value })}
                                                 className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${(scene.avatarGesture || "explaining") === g.value
-                                                        ? "bg-[#7B61FF]/20 border border-[#7B61FF] text-white"
-                                                        : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
+                                                    ? "bg-[#7B61FF]/20 border border-[#7B61FF] text-white"
+                                                    : "bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10"
                                                     }`}
                                             >
                                                 {g.label}

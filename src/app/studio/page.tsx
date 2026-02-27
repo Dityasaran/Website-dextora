@@ -104,6 +104,28 @@ export default function StudioDashboard() {
                             const ttsData = await ttsRes.json();
                             if (ttsData.audioUrl) {
                                 updatedScenes[i].ttsAudioUrl = ttsData.audioUrl;
+
+                                // AUTOMATICALLY PIPELINE TO FAL.AI LIP-SYNC
+                                setProgress(p => ({ ...p, detail: `Animating avatar for Scene ${i + 1} (Fal.ai Pro)...` }));
+                                try {
+                                    const syncRes = await fetch("/api/sync-avatar", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ ttsAudioUrl: ttsData.audioUrl, sceneIndex: i }),
+                                    });
+                                    if (syncRes.ok) {
+                                        const syncData = await syncRes.json();
+                                        if (syncData.syncedVideoUrl) {
+                                            updatedScenes[i].syncedVideoUrl = syncData.syncedVideoUrl;
+                                        }
+                                    } else {
+                                        const errData = await syncRes.json();
+                                        throw new Error(`Fal.ai Error: ${errData.error || "Generation Failed"}`);
+                                    }
+                                } catch (syncErr: any) {
+                                    console.error(`[Sync] Scene ${i + 1} exception:`, syncErr.message);
+                                    throw new Error(`Lip-Sync failed on Scene ${i + 1}: ${syncErr.message}. Wait or check Fal.ai credits.`);
+                                }
                             }
                         }
                     } catch (ttsErr: any) {

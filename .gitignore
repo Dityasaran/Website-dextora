@@ -48,4 +48,6 @@ service-account.json
 public/videos/
 public/audio/
 public/assets/images/scene-*
+public/assets/avatar/*.mp4
+public/assets/avatar/*.backup
 tmp/

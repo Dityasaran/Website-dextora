@@ -78,12 +78,30 @@ export const AvatarScene: React.FC<{ segment: ReelSegment; index: number; avatar
                 }}
             />
 
-            {/* 3. Avatar — Simora-style UGC creator */}
-            <ReusableAvatar
-                speaking={true}
-                gesture={(segment.avatarGesture as "idle" | "explaining" | "pointing" | "waving") || "explaining"}
-                avatarId={avatarId}
-            />
+            {/* 3. Avatar — Simora-style UGC creator or Lip-Synced Human */}
+            {segment.syncedVideoUrl ? (
+                <Video
+                    src={segment.syncedVideoUrl.startsWith("/") ? staticFile(segment.syncedVideoUrl.slice(1)) : segment.syncedVideoUrl}
+                    style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        height: "85%", // Presenter size
+                        objectFit: "contain",
+                        zIndex: 10,
+                        // For a white/beige background, 'multiply' blends it out leaving the dark subjects. 
+                        // For a green screen, we would need a WebGL chroma-key or 'maskImage'.
+                        mixBlendMode: "multiply",
+                    }}
+                />
+            ) : (
+                <ReusableAvatar
+                    speaking={true}
+                    gesture={(segment.avatarGesture as "idle" | "explaining" | "pointing" | "waving") || "explaining"}
+                    avatarId={avatarId}
+                />
+            )}
 
             {/* 4. UGC Captions  */}
             {segment.script && <CinematicCaption text={segment.script} style="ugc" />}

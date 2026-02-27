@@ -14,9 +14,10 @@ export interface ReelSegment {
 
     // Populated later
     avatarVideoUrl?: string;
+    syncedVideoUrl?: string; // SyncLabs synced output
     visualAsset?: string;
+    imageUrls?: string[]; // B-roll images
     ttsAudioUrl?: string;
-    imageUrls?: string[];
     videoUrl?: string;
 }
 
