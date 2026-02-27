@@ -105,8 +105,8 @@ export default function StudioDashboard() {
                             if (ttsData.audioUrl) {
                                 updatedScenes[i].ttsAudioUrl = ttsData.audioUrl;
 
-                                // AUTOMATICALLY PIPELINE TO FAL.AI LIP-SYNC
-                                setProgress(p => ({ ...p, detail: `Animating avatar for Scene ${i + 1} (Fal.ai Pro)...` }));
+                                // AUTOMATICALLY PIPELINE TO LOCAL L4 GPU LIP-SYNC
+                                setProgress(p => ({ ...p, detail: `L4 GPU Engine Processing Scene ${i + 1}... (30-60s)` }));
                                 try {
                                     const syncRes = await fetch("/api/sync-avatar", {
                                         method: "POST",
@@ -120,11 +120,11 @@ export default function StudioDashboard() {
                                         }
                                     } else {
                                         const errData = await syncRes.json();
-                                        throw new Error(`Fal.ai Error: ${errData.error || "Generation Failed"}`);
+                                        throw new Error(`L4 GPU Engine Error: ${errData.error || "Generation Failed"}`);
                                     }
                                 } catch (syncErr: any) {
                                     console.error(`[Sync] Scene ${i + 1} exception:`, syncErr.message);
-                                    throw new Error(`Lip-Sync failed on Scene ${i + 1}: ${syncErr.message}. Wait or check Fal.ai credits.`);
+                                    throw new Error(`Lip-Sync failed on Scene ${i + 1}: ${syncErr.message}`);
                                 }
                             }
                         }

@@ -26,14 +26,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No base_human.mp4 found in public/assets/avatar/" }, { status: 400 });
         }
 
-        // 3. Create job & Poll (Using Fal.ai Serverless Client)
-        console.log(`[Sync API] Triggering Fal.ai sync for scene ${sceneIndex}`);
+        // 3. Dispatch to TITAN ENGINE — Local L4 GPU (EchoMimic)
+        console.log(`[Sync API] Triggering L4 GPU Engine for scene ${sceneIndex}`);
         const syncedVideoUrl = await createAndPollSyncJob(videoPath, audioPath);
 
-        // 4. Return the highly-optimized Fal CDN URL directly to the frontend
-        // This is infinitely faster and guarantees the video instantly plays in Remotion
-        // without waiting for Next.js to hot-reload the local `public` folder index!
-        console.log(`[Sync API] Streaming remote Fal CDN video directly: ${syncedVideoUrl}`);
+        // 4. Return the synced video path (served from /public/assets/)
+        console.log(`[Sync API] L4 GPU Engine complete. Output: ${syncedVideoUrl}`);
 
         return NextResponse.json({
             success: true,

@@ -1,59 +1,55 @@
-import fs from 'fs/promises';
-import { fal } from '@fal-ai/client';
+import fs from 'fs';
+import path from 'path';
 
 /**
- * Uploads local file securely to Fal.ai's lightning-fast native blob storage.
- * Completely bypasses problematic temporary file hosts.
- */
-async function uploadToFalStorage(filePath: string, type: 'video/mp4' | 'audio/mpeg'): Promise<string> {
-    fal.config({ credentials: process.env.FAL_KEY || "" });
-    console.log(`[SyncEngine] Uploading ${filePath} to Fal Storage...`);
-    const fileBuffer = await fs.readFile(filePath);
-    const blob = new Blob([fileBuffer], { type });
-    const url = await fal.storage.upload(blob);
-    console.log(`[SyncEngine] Uploaded! URL: ${url}`);
-    return url;
-}
-
-/**
- * Submits to Fal.ai using their official robust client SDK.
- * Handles queue, polling, and final video retrieval natively.
+ * TITAN ENGINE — dispatches video + audio to local EchoMimic GPU inference.
+ * Sends files directly to the L4 GPU on port 8000. Waits up to 15 minutes.
  */
 export async function createAndPollSyncJob(videoPath: string, audioPath: string): Promise<string> {
-    const FAL_KEY = process.env.FAL_KEY || "";
-    if (!FAL_KEY) throw new Error("Missing FAL_KEY in environment variables");
-    fal.config({ credentials: FAL_KEY });
+    console.log(`[SyncEngine] Loading files: Video: ${videoPath}, Audio: ${audioPath}`);
 
-    const videoUrl = await uploadToFalStorage(videoPath, 'video/mp4');
-    const audioUrl = await uploadToFalStorage(audioPath, 'audio/mpeg');
+    const videoBuffer = fs.readFileSync(videoPath);
+    const audioBuffer = fs.readFileSync(audioPath);
 
-    console.log(`[SyncEngine] Submitting and Subscribing to Fal.ai Sync-Lipsync v2 Pro...`);
+    const formData = new FormData();
+    formData.append("base_human", new Blob([videoBuffer]), "base_human.mp4");
+    formData.append("audio", new Blob([audioBuffer]), "audio.mp3");
 
+    console.log("🚀 TITAN ENGINE: Dispatching to local L4 GPU (EchoMimic) on localhost:8000...");
+
+    // 15-minute timeout — EchoMimic loads ~13GB of weights on first run
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15 * 60 * 1000);
+
+    let response: Response;
     try {
-        const result: any = await fal.subscribe("fal-ai/sync-lipsync/v2/pro", {
-            input: {
-                video_url: videoUrl,
-                audio_url: audioUrl,
-                sync_mode: "bounce", // Natively ping-pongs the video to match the audio length!
-            },
-            pollInterval: 3000,
-            onQueueUpdate: (update) => {
-                if (update.status === 'IN_PROGRESS') {
-                    console.log("[SyncEngine] Fal.ai processing in progress...");
-                } else if (update.status === "IN_QUEUE") {
-                    console.log(`[SyncEngine] Position in queue: ${update.queue_position}`);
-                }
-            }
+        response = await fetch("http://127.0.0.1:8000/generate-sync", {
+            method: "POST",
+            body: formData,
+            signal: controller.signal,
         });
-
-        const finalUrl = result.data?.video?.url || result.video?.url;
-        if (finalUrl) {
-            console.log(`[SyncEngine] Fal.ai Success! URL: ${finalUrl}`);
-            return finalUrl;
-        } else {
-            throw new Error(`Fal.ai succeeded but no video URL found: ${JSON.stringify(result)}`);
-        }
-    } catch (e: any) {
-        throw new Error(`Fal.ai SDK Error: ${e.message}`);
+    } finally {
+        clearTimeout(timeoutId);
     }
+
+    if (!response.ok) {
+        let errorBody = response.statusText;
+        try {
+            const errJson = await response.json();
+            errorBody = errJson.error || errJson.details || JSON.stringify(errJson);
+        } catch { /* ignore parse errors */ }
+        throw new Error(`TITAN ENGINE Error (${response.status}): ${errorBody}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const finalBuffer = Buffer.from(arrayBuffer);
+
+    // Save to Next.js public directory so Remotion can serve it
+    const outputPath = path.join(process.cwd(), 'public', 'assets', 'final_synced_output.mp4');
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    fs.writeFileSync(outputPath, finalBuffer);
+
+    console.log(`✅ TITAN ENGINE complete! Synced video: ${outputPath} (${(finalBuffer.length / 1024 / 1024).toFixed(1)} MB)`);
+    return '/assets/final_synced_output.mp4';
 }
+

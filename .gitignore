@@ -51,3 +51,15 @@ public/assets/images/scene-*
 public/assets/avatar/*.mp4
 public/assets/avatar/*.backup
 tmp/
+node_modules
+
+# Python/ML virtual envs & weights
+echomimic_env/
+lipsync_env/
+EchoMimic/pretrained_weights/
+EchoMimic/output/
+EchoMimic/__pycache__/
+*.pyc
+
+# Final videos
+public/assets/final_*.mp4
